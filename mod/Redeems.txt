@@ -1,10 +1,13 @@
-Format (Title of redeem):(redeem syntax), not case sensitive, you can use all characters except ':' for the title
-Give me Opium:give opium
-Give me fent pwetty pwease >w<:give fentanyl
-Feed me bread:give bread
-A stick in these trying times:give stick
-Give me a random item:give random
-Give thou a medical item:give random medical
-drugs:give random drug
-Wtf is a "custom"?:give random custom
-Brain Damamge my beloved:braindamage
+Format (title of redeem):(prompt):(cost):(delay):(redeem syntax), not case sensitive, you can use all characters except ':'
+Give me Opium:Just a touch.:500:0:give opium
+Give me fent pwetty pwease >w<:Thanks UwU:2000:0:give fentanyl
+Feed me bread:yummers:200:0:give bread
+A stick in these trying times:So useful.:100:0:give stick
+Give me a random item:Hope this helps.:500:0:give random
+Give thou a medical item:For upcoming explosion.:750:0:give random medical
+drugs:You'll inject it of course?:500:0:give random drug
+Wtf is a "custom"?:Give whatever a custom is:250:0:give random custom
+Brain Damamge my beloved:bonk!:500:0:braindamage
+Drain Batteries:Your powers are mine!:2000:30:drainbatteries
+Random Teleport:They say this can never end badly:2000:30:teleport
+Trip!:Trap!:1000:0:trip

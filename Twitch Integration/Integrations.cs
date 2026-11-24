@@ -121,11 +121,69 @@ public class Integrations : MonoBehaviour
         PlayerCamera.main.body.Ragdoll();
     }
 
+    public bool DrainBatteries()
+    {
+        foreach (Item item in PlayerCamera.main.body.GetAllItemsThorough())
+        {
+            if ((bool)item.battery)
+            {
+                item.battery.DrainCharge(0.33f);
+            }
+            if (item.Stats is BatteryInfo)
+            {
+                item.condition -= 0.33f;
+            }
+        }
+        Sound.Play("crystalemp", PlayerCamera.main.body.transform.position, twoDimensional: true, pitchShift: false);
+        PlayerCamera.main.shaker.Shake();
+        return true;
+    }
+
+    public bool Teleport()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            Vector2 vector = (Vector2)PlayerCamera.main.body.transform.position + Random.insideUnitCircle * 64f;
+            if (vector.x < 0L - WorldGeneration.world.halfWidth + 10f)
+            {
+                vector.x = 0L - WorldGeneration.world.halfWidth + 10f;
+            }
+            if (vector.x > WorldGeneration.world.halfWidth - 10f)
+            {
+                vector.x = WorldGeneration.world.halfWidth - 10f;
+            }
+            if (!Physics2D.OverlapPoint(vector, LayerMask.GetMask("Ground")))
+            {
+                RaycastHit2D raycastHit2D = Physics2D.Raycast(vector, Vector2.down, 999f, LayerMask.GetMask("Ground"));
+                if ((bool)raycastHit2D)
+                {
+                    Sound.Play("observerlaugh", Vector2.zero, twoDimensional: true, pitchShift: false, null, 1f, 1f, noReverb: true, ignoreMixer: true);
+                    PlayerCamera.main.StartCoroutine("FlashBrief");
+                    PlayerCamera.main.body.consciousness = 100f;
+                    PlayerCamera.main.body.shock = 0f;
+                    PlayerCamera.main.body.rb.velocity = Vector2.zero;
+                    PlayerCamera.main.body.Stand();
+                    PlayerCamera.main.body.transform.position = raycastHit2D.point + Vector2.up * 3f;
+                    break;
+                }
+            }
+        }
+        return true;
+    }
+
+    public bool Trip()
+    {
+        PlayerCamera.main.body.Ragdoll();
+        return true;
+    }
+
     readonly public List<string> Redeems =
     [
         "braindamage",
+        "drainbatteries",
         "give",
-        "teleport"
+        "teleport",
+        "trip"
     ];
     readonly public List<string> RandomItemRedeems =
     [

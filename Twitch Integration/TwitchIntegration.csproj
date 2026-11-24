@@ -3,7 +3,7 @@
     <TargetFramework>net48</TargetFramework>
     <AssemblyName>TwitchIntegration</AssemblyName>
     <Product>TwitchIntegration</Product>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -49,7 +49,7 @@
     </Reference>
 
     <Reference Include="CasualtiesMP">
-      <HintPath>..\CuLib\CasualtiesMP.dll</HintPath>
+      <HintPath>$(CasualtiesMPDllPath)</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -70,8 +70,7 @@
 
   <PropertyGroup>
   <RequiredFilesToCopy>
-  $(ProjectName).dll;
-  $(ProjectName).pdb
+  TwitchIntegration.dll;
   </RequiredFilesToCopy>
 
 
@@ -80,7 +79,7 @@
   </PropertyGroup>
 
   <Target Name="CopyOutputDllsToPluginsFolder" AfterTargets="AfterBuild" Condition="'$(RequiredFilesToCopy)'!=''">
-    <MakeDir Directories="$(BepInExDir)/plugins/$(ProjectName)" />
+    <MakeDir Directories="$(BepInExDir)/plugins/TwitchIntegration" />
   <CombinePath BasePath="$(OutDir)" Paths="$(RequiredFilesToCopy)">
     <Output TaskParameter="CombinedPaths" ItemName="RequiredFilesToCopy_Combined" />
   </CombinePath>
@@ -97,6 +96,5 @@
 
   <Target Name="ValidateTemplatePaths" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(GameAssembliesDir)/Assembly-CSharp.dll')" Text="Could not find Assembly-CSharp.dll in the resolved game folder. This template builds against the full game (steamapps\common\Casualties Unknown), not the Demo. Set ManualBaseGamePath/BaseGamePath in vars.targets or pass /p:BaseGamePath=... when building." />
-    <Error Condition="'$(CUCoreLibDllPath)' == '' or !Exists('$(CUCoreLibDllPath)')" Text="Could not find CUCoreLib.dll! Update CUCoreLibDllPath in vars.targets or install/build CUCoreLib first." />
   </Target>
 </Project>
