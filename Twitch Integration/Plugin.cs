@@ -5,7 +5,7 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using TwitchIntegration.Twitch;
-using UnityEngine;
+using System.IO;
 
 namespace TwitchIntegration;
 
@@ -15,17 +15,56 @@ public class Plugin : BaseUnityPlugin
 {
 	public const string GUID = "Nexivyffulf.TwitchIntegration";
 	public const string MODNAME = "TwitchIntegration";
-	public const string VERSION = "0.1.0.0";
+	public const string VERSION = "0.1.1";
 	internal static new ManualLogSource Logger;
 	private readonly Harmony _harmony = new(GUID);
 	public static ConfigEntry<string> OAuthToken;
 	public static Plugin Instance { get; private set; } = null;
 
+	
 	public static bool leftconnected = false;   //Certainly a way
 
-	public TwitchClient Client;
-	private OAuthLogin _login;
+	public static string htmlpage;
+	public static string listofredeems;
 
+	private TwitchClient Client;
+	private OAuthLogin _login;
+	public static Integrations integrations;
+	public void Awake()
+	{
+		Logger = base.Logger;
+		Instance = this;
+
+		OAuthToken = Config.Bind("DO NOT SHARE THIS AT ALL!",
+								 "Generated OAuth key:",
+								 "",
+								 "This is a where a saved key would go if you pressed \"Store Login Info\" and is empty otherwise.");
+
+		string[] files = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "BepInEx", "plugins"), "*", SearchOption.AllDirectories);
+		int found = 0;
+		foreach(string path in files)
+        {
+			if (path.Contains("page.html"))
+			{
+				htmlpage = path;
+				Logger.LogInfo("Found page.html!");
+				found++;
+			}
+			if (path.Contains("Redeems.txt"))
+			{
+				listofredeems = path;
+				Logger.LogInfo("Found Redeems.txt!");
+				found++;
+			}
+			if(found == 2)
+				break;
+		}
+		if(found != 2)
+			Logger.LogError("Missing Companion files!");
+		_harmony.PatchAll();
+		Logger.LogInfo($"Plugin {MODNAME} is loaded!");
+
+	}
 	public void Connect()
 	{
 		if (Client != null)
@@ -39,12 +78,14 @@ public class Plugin : BaseUnityPlugin
 
 			_login.Success += client =>
 		   {
-			   Logger.LogInfo("Successfully logged into Twitch!");
-			   Client = client;
-			   _login = null;
+				Logger.LogInfo("Successfully logged into Twitch!");
+				Client = client;
+				_login = null;
 
-			   if ((Settings.settings.Find(s => s.name == "stay_logged_in") as SettingBool).value)
-				   OAuthToken.Value = client.Api.Settings.AccessToken;
+				if ((Settings.settings.Find(s => s.name == "stay_logged_in") as SettingBool).value)
+					OAuthToken.Value = client.Api.Settings.AccessToken;
+
+				integrations = new();
 		   };
 			_login.Failure += () =>
 			{
@@ -54,19 +95,6 @@ public class Plugin : BaseUnityPlugin
 				_login = null;
 			};
 		}
-	}
-	public void Awake()
-	{
-		Logger = base.Logger;
-		Instance = this;
-
-		OAuthToken = Config.Bind("DO NOT SHARE THIS AT ALL!",
-								 "Generated OAuth key:",
-								 "",
-								 "This is a where a saved key would go if you pressed \"Store Login Info\" and is empty otherwise.");
-
-		_harmony.PatchAll();
-		Logger.LogInfo($"Plugin {MODNAME} is loaded!");
 	}
 	public void Update()	//Go my updates
 	{

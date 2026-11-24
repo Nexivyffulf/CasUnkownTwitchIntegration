@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Reflection;
-using System.Security.Permissions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,13 +28,12 @@ internal class OAuthLogin : IDisposable
 	private Task<TwitchClient> loginTask;
 
 	private static readonly List<AuthScopes> authScopes =
-	[
-		AuthScopes.Helix_Channel_Read_Redemptions,
-		AuthScopes.Helix_Channel_Manage_Redemptions
+    [
+        AuthScopes.Channel_Read_Redemptions,
+		AuthScopes.Channel_Manage_Redemptions
 	];
 
 	public event Action<TwitchClient> Success;
-
 	public event Action Failure;
 
 	public OAuthLogin()
@@ -93,7 +90,6 @@ internal class OAuthLogin : IDisposable
 				{
 					Scopes = authScopes
 				})
-			.AddSingleton((IApiSettings)new ApiSettings { Scopes = authScopes })
 			.AddSingleton<WebSocketClient>()
 			.AddSingleton<TwitchAPI>()
 			.AddTwitchLibEventSubWebsockets();
@@ -103,10 +99,11 @@ internal class OAuthLogin : IDisposable
 	{
 		ServiceProvider services = GetDefaultServices().BuildServiceProvider();
 		TwitchAPI api = services.GetRequiredService<TwitchAPI>();
-		EventSubWebsocketClient eventSub = services.GetRequiredService<EventSubWebsocketClient>();  //fail here
-
+		EventSubWebsocketClient eventSub = services.GetRequiredService<EventSubWebsocketClient>();
 		api.Settings.ClientId = Secrets.client_id;  //Grey Planet Live Feed's ID btw not yours.
+
 		ValidateAccessTokenResponse validation = null;
+
 		if (Plugin.OAuthToken.Value != "")
 		{
 			api.Settings.AccessToken = Plugin.OAuthToken.Value;
@@ -118,9 +115,7 @@ internal class OAuthLogin : IDisposable
 		if (validation == null) //Continue to normal if stored did not work.
 		{
 			Plugin.Logger.LogInfo("Opening OAuth page.");
-
-			IApiSettings settings = api.Settings;
-			settings.AccessToken = await GetOAuthToken(api, ctoken);
+			api.Settings.AccessToken = await GetOAuthToken(api, ctoken);
 
 			ctoken.ThrowIfCancellationRequested();
 			Plugin.Logger.LogInfo("Validating Login info...");
@@ -165,8 +160,7 @@ internal class OAuthLogin : IDisposable
 			string accessToken = null;
 
 			Application.OpenURL(url);
-
-			byte[] response = File.ReadAllBytes("BepInEx/plugins/TwitchIntegration/page.html");
+			byte[] response = File.ReadAllBytes(Plugin.htmlpage);
 			while (accessToken == null)
 			{
 				ctoken.ThrowIfCancellationRequested();

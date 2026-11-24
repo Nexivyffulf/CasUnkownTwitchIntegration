@@ -1,0 +1,10 @@
+Format (Title of redeem):(redeem syntax), not case sensitive, you can use all characters except ':' for the title
+Give me Opium:give opium
+Give me fent pwetty pwease >w<:give fentanyl
+Feed me bread:give bread
+A stick in these trying times:give stick
+Give me a random item:give random
+Give thou a medical item:give random medical
+drugs:give random drug
+Wtf is a "custom"?:give random custom
+Brain Damamge my beloved:braindamage

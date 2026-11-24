@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using TwitchLib.Api;
 using TwitchLib.Api.Core.Enums;
 using TwitchLib.EventSub.Websockets;
 using TwitchLib.EventSub.Websockets.Core.EventArgs;
-using TwitchLib.EventSub.Websockets.Core.EventArgs.Channel;
+using TwitchLib.EventSub.Core.EventArgs.Channel;
 
 namespace TwitchIntegration.Twitch;
 
@@ -15,38 +16,44 @@ public class TwitchClient : IDisposable
     public readonly TwitchAPI Api;
     public readonly string ChannelId;
     private readonly EventSubWebsocketClient eventSub;
-    public bool? ChannelPointsAvailable { get; private set; }
     private bool disposed;
 
-    public class Redemption(string userName, string prompt)
+    public class Redemption(string userName, string title)
     {
         public readonly string Username = userName;
-        public readonly string Prompt = prompt;
+        public readonly string Title = title;
         public bool fulfilled = false;
     }
     public ConcurrentQueue<Redemption> RedemptionQueue = [];
-    
-    public TwitchClient(TwitchAPI api, EventSubWebsocketClient eventSub, string channelId)
+    public static Dictionary<string, string> Redemptions;
+
+    public TwitchClient(TwitchAPI api, EventSubWebsocketClient eventSub, string channelId)  //here
     {
         Api = api;
         ChannelId = channelId;
         this.eventSub = eventSub;
 
-        this.eventSub.ErrorOccurred += delegate (object _, ErrorOccuredArgs args)
-        {
-            Plugin.Logger.LogError(args.Message + "\n" + args.Exception);
-        };
+        LoadRedeems();
+        
+        this.eventSub.ErrorOccurred += async (_, args) => Plugin.Logger.LogError(args.Message + "\n" + args.Exception);
         this.eventSub.WebsocketConnected += OnConnected;
         this.eventSub.WebsocketDisconnected += OnDisconnected;
         this.eventSub.ChannelPointsCustomRewardRedemptionAdd += OnRedemption;
     }
-
-    private async void OnConnected(object sender, WebsocketConnectedArgs e)
+    public Task<bool> Connect()
     {
-        await Api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.channel_points_custom_reward_redemption.add", "1", new Dictionary<string, string> { { "broadcaster_user_id", ChannelId } }, EventSubTransportMethod.Websocket, eventSub.SessionId);
+        return eventSub.ConnectAsync();
+    }
+    private async Task OnConnected(object sender, WebsocketConnectedArgs e)
+    {
+        await Api.Helix.EventSub.CreateEventSubSubscriptionAsync(
+            "channel.channel_points_custom_reward_redemption.add", "1",
+            new() { { "broadcaster_user_id", ChannelId } },
+            EventSubTransportMethod.Websocket,
+            eventSub.SessionId);
     }
 
-    private async void OnDisconnected(object sender, EventArgs e)
+    private async Task OnDisconnected(object sender, EventArgs e)
     {
         int delay = 1000;
         while (!await eventSub.ReconnectAsync() && !disposed)
@@ -55,36 +62,59 @@ public class TwitchClient : IDisposable
             delay = Math.Min(delay * 2, 30000);
         }
     }
-    
 
-    private void OnRedemption(object sender, ChannelPointsCustomRewardRedemptionArgs e)
+    private async Task OnRedemption(object sender, ChannelPointsCustomRewardRedemptionArgs e)
     {
         Plugin.Logger.LogInfo("NEW REDEMPION DING DING DING!!");
-        RedemptionQueue.Enqueue(new Redemption(e.Notification.Payload.Event.UserName, e.Notification.Payload.Event.Reward.Prompt));
+        RedemptionQueue.Enqueue(new Redemption(e.Payload.Event.UserName, e.Payload.Event.Reward.Title));
     }
 
     public void Update()
     {
-        if (RedemptionQueue.TryDequeue(out var redemption))
-        {
-            string redeem = redemption.Prompt.Substring(0, redemption.Prompt.IndexOf('_')).ToLower();
-            string item = redemption.Prompt.Substring(redemption.Prompt.LastIndexOf('_'),redemption.Prompt.Length).ToLower();
-            if (redeem == "give")
-                if (redemption.Prompt.ToLower().IndexOf("random") != 0)
-                    redemption.fulfilled = Integrations.CUIntegrations.GiveRandomItem(item);
+        if (!PlayerCamera.main && !PauseHandler.paused) //Only when you are playing
+            if (RedemptionQueue.TryDequeue(out Redemption redemption)) //Seperate so it doesn't remove
+            {
+                string[] redeem = Redemptions[redemption.Title.ToLower()].Split(' ');
+                switch (Plugin.integrations.Redeems.IndexOf(redeem[0]))
+                {
+                    case 1:
+                        redemption.fulfilled = Plugin.integrations.BrainDamage();
+                        break;
+                    case 2:
+                        if (redeem[1] == "random")
+                            redemption.fulfilled = Plugin.integrations.GiveRandomItem(redeem.Length < 3 ? "uwu" : redeem[2]);
+                        else
+                            redemption.fulfilled = Plugin.integrations.GiveItem(redeem[1]);
+                        break;
+                }
+                if (redemption.fulfilled == true)
+                    Plugin.Logger.LogInfo($"Redeem \"{redemption.Title}\" from {redemption.Username} fullfilled!");
                 else
-                    redemption.fulfilled = Integrations.CUIntegrations.GiveItem(item);
-
-            if (redemption.fulfilled == true)
-                Plugin.Logger.LogInfo($"Redeem \"{redemption.Prompt}\" from {redemption.Username} fullfilled!");
-            else
-                Plugin.Logger.LogError($"Incorrect prompt \"{redemption.Prompt}\".");
-        }
+                    Plugin.Logger.LogError($"Incorrect prompt \"{redemption.Title}\".");
+            }
     }
 
-    public Task<bool> Connect(Uri uri = null)
+    public void LoadRedeems()
     {
-        return eventSub.ConnectAsync(uri);
+        try
+        {
+            StreamReader sr = new(Plugin.listofredeems);
+
+            string line = sr.ReadLine();    //This will just be the cool title
+            line = sr.ReadLine();   //first redeem
+            Redemptions = [];
+            while (line != null)
+            {
+                Redemptions.Add(line.Substring(0, line.IndexOf(":")).ToLower(), line.Substring(line.IndexOf(":") + 1, line.Length - 1 - line.IndexOf(":")).ToLower());
+                line = sr.ReadLine();
+            }
+
+            sr.Close();
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError("Exception: " + e.Message);
+        }
     }
 
     public void Dispose()

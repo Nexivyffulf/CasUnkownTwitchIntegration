@@ -13,27 +13,11 @@ If you are a twitch affiliate it should "hopefully" work.
 
 Adding redemptions:
 
-For now, this must be done manually, there are two to mention. How you set them up is loose and only requires a few keywords
-in the description to work. Name, cost, and all other things can be whatever you want.
-Keywords can be any case.
+Look at "Redeems.txt" in there you will see tiles next to a bunch of keywords. You can use them or make your own.
+The title can be anything you want, it is not case sensitive and can't have ':' in it.
+Add it to the list here then make a redeem with a matching title on your channel.
+To make it do something, you add the relavent key words to the other side.
 
-Give item:
-
-starts with "give"
-ends with the name of the item you want
-
-Give random item:
-
-starts with "give"
-has the word "random" anywhere in it
-may end with the pool, valid pools are below
-
-
-medical
-food
-water
-tool
-drug
-container
-utility
-custom
+give <item>			--- gives the player the item
+give random <category>		--- gives a random item, optionally from a category: medical, food, water, tool, drug, container, utility, custom
+braindamage			--- causes a random brain damage effect to play
