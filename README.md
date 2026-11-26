@@ -68,6 +68,10 @@ Look at "Redeems.txt" in there you will see redeems laid out with keywords at th
     * injectionsickness: sickness for injecting
     * qualities: crafting qualities
 
+* **command *\<command>***
+
+  * runs the specified command, it can still disable achievements
+
 
 
 ##### **Config:**
