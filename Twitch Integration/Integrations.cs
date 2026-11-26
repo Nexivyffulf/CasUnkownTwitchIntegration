@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace TwitchIntegration;
@@ -18,7 +19,6 @@ public class Integrations : MonoBehaviour
         PlayerCamera.main.body.AutoPickUpItem(gameObject.GetComponent<Item>());
         return true;
     }
-
     public bool GiveRandomItem(string category)
     {
         if (!RandomItemRedeems.Contains(category))  //If not known, be all
@@ -29,7 +29,6 @@ public class Integrations : MonoBehaviour
         else
             return GiveItem(ItemLootPool.pool[category].PickRandom());
     }
-
     public bool BrainDamage()
     {
         switch (Random.Range(0, 15))
@@ -107,7 +106,6 @@ public class Integrations : MonoBehaviour
         }
         return true;
     }
-
     private IEnumerator BrainDamageRagdoll()
     {
         float timer = 0f;
@@ -120,7 +118,6 @@ public class Integrations : MonoBehaviour
         PlayerCamera.main.body.brainShakeIntensity = 0f;
         PlayerCamera.main.body.Ragdoll();
     }
-
     public bool DrainBatteries()
     {
         foreach (Item item in PlayerCamera.main.body.GetAllItemsThorough())
@@ -138,20 +135,15 @@ public class Integrations : MonoBehaviour
         PlayerCamera.main.shaker.Shake();
         return true;
     }
-
     public bool Teleport()
     {
         for (int i = 0; i < 1000; i++)
         {
             Vector2 vector = (Vector2)PlayerCamera.main.body.transform.position + Random.insideUnitCircle * 64f;
             if (vector.x < 0L - WorldGeneration.world.halfWidth + 10f)
-            {
                 vector.x = 0L - WorldGeneration.world.halfWidth + 10f;
-            }
             if (vector.x > WorldGeneration.world.halfWidth - 10f)
-            {
                 vector.x = WorldGeneration.world.halfWidth - 10f;
-            }
             if (!Physics2D.OverlapPoint(vector, LayerMask.GetMask("Ground")))
             {
                 RaycastHit2D raycastHit2D = Physics2D.Raycast(vector, Vector2.down, 999f, LayerMask.GetMask("Ground"));
@@ -170,18 +162,88 @@ public class Integrations : MonoBehaviour
         }
         return true;
     }
-
     public bool Trip()
     {
         PlayerCamera.main.body.Ragdoll();
         return true;
     }
+    public bool Spawnelder(bool fake)
+    {
+        if (fake)
+            Rattle();
+        else
+            _ = Utils.Create("elderthornback", (Vector2)PlayerCamera.main.body.transform.position + Random.insideUnitCircle.normalized * 100f, 0f);
+        return true;
+    }
 
+    public async void Rattle()
+    {
+            for (int i = 0; i < 20; i++)
+        {
+            PlayerCamera.main.body.adrenaline = 100f;
+            PlayerCamera.main.body.horrifiedLevel = 50f;
+            if (PlayerCamera.main.body.sleeping)
+            {
+                PlayerCamera.main.body.WakeUp();
+                PlayerCamera.main.body.energy = Mathf.Max(PlayerCamera.main.body.energy, 10f);
+            }
+            await Task.Delay(500);
+        }
+            
+    }
+    public bool Command(string command)
+    {
+        ConsoleScript.instance.ExecuteCommand(command);
+        return true;
+    }
+    public static Dictionary<string, LiquidType> originalliquids = Liquids.Registry;
+    public bool RandomiseLiquids(string values)
+    {
+        Dictionary<string, LiquidType> registry = Liquids.Registry;
+        
+        if (values.Contains("dangerous"))
+            foreach (string dangers in Liquids.DangerList)
+                registry.Remove(dangers);
+
+        LiquidType[] liquids = [.. registry.Values];
+        string[] ids = [.. registry.Keys];
+        var rng = new System.Random();
+        for(int i = liquids.Length - 1; i > 1; i--)
+        {
+            int j = rng.Next(i + 1);
+            (liquids[j], liquids[i]) = (liquids[i], liquids[j]);
+        }
+        bool localeName = values.Contains("localename");
+        bool color = values.Contains("color");
+        bool valuePerLiter = values.Contains("valueperliter");
+        bool onDrink = values.Contains("ondrink");
+        bool injectionSickness = values.Contains("injectionsickness");
+        bool qualities = values.Contains("qualities");
+        for (int i = 0; i < liquids.Length; i++)
+        {
+            if (localeName)
+                Liquids.Registry[ids[i]].localeName = liquids[i].localeName;
+            if (color)
+                Liquids.Registry[ids[i]].color = liquids[i].color;
+            if (valuePerLiter)
+                Liquids.Registry[ids[i]].valuePerLiter = liquids[i].valuePerLiter;
+            if (onDrink)
+                Liquids.Registry[ids[i]].onDrink = liquids[i].onDrink;
+            if (injectionSickness)
+                Liquids.Registry[ids[i]].injectionSickness = liquids[i].injectionSickness;
+            if (qualities)
+                Liquids.Registry[ids[i]].qualities = liquids[i].qualities;
+        }
+        return true;
+    }
     readonly public List<string> Redeems =
     [
         "braindamage",
+        "command",
         "drainbatteries",
         "give",
+        "randomiseliquids",
+        "spawnelder",
         "teleport",
         "trip"
     ];

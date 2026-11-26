@@ -1,7 +1,6 @@
 Format (title of redeem):(prompt):(cost):(delay):(redeem syntax), not case sensitive, you can use all characters except ':'
-Give me Opium:Just a touch.:500:0:give opium
-Give me fent pwetty pwease >w<:Thanks UwU:2000:0:give fentanyl
 Feed me bread:yummers:200:0:give bread
+Give me fent pwetty pwease >w<:Thanks UwU:2000:0:give fentanyl
 A stick in these trying times:So useful.:100:0:give stick
 Give me a random item:Hope this helps.:500:0:give random
 Give thou a medical item:For upcoming explosion.:750:0:give random medical
@@ -11,3 +10,5 @@ Brain Damamge my beloved:bonk!:500:0:braindamage
 Drain Batteries:Your powers are mine!:2000:30:drainbatteries
 Random Teleport:They say this can never end badly:2000:30:teleport
 Trip!:Trap!:1000:0:trip
+Spawn Thornbackelder:Something wicked this way comes...:5000:600:spawnelder
+Fake Thornbackelder:Tehe!:200:0:spawnelder fake

@@ -3,7 +3,7 @@
     <TargetFramework>net48</TargetFramework>
     <AssemblyName>TwitchIntegration</AssemblyName>
     <Product>TwitchIntegration</Product>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -29,14 +29,15 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
+    <PackageReference Include="System.ValueTuple" Version="4.6.2" />
     <PackageReference Include="TwitchLib.Api" Version="3.11.0" />
     <PackageReference Include="TwitchLib.Client" Version="4.0.2" />
     <PackageReference Include="TwitchLib.EventSub.Websockets" Version="0.9.0" />
-    <PackageReference Include="UnityEngine.Modules" Version="2022.3.62" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.62" IncludeAssets="compile" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" IncludeAssets="compile" />
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
 
-    <Reference Include="Assembly-CSharp">
+    <Reference Include="Assembly-CSharp" Publicize="true" >
       <HintPath>$(GameAssembliesDir)/Assembly-CSharp.dll</HintPath>
     </Reference>
 
@@ -48,9 +49,6 @@
       <HintPath>$(GameAssembliesDir)/Unity.TextMeshPro.dll</HintPath>
     </Reference>
 
-    <Reference Include="CasualtiesMP">
-      <HintPath>$(CasualtiesMPDllPath)</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
@@ -58,24 +56,9 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- Auto-embedded media -->
-    <EmbeddableMediaGlobs>images\\**\\*.png;images\\**\\*.jpg;images\\**\\*.jpeg;images\\**\\*.ase;images\\**\\*.aseprite;assets\\**\\*.png;assets\\**\\*.jpg;assets\\**\\*.jpeg;assets\\**\\*.wav;assets\\**\\*.mp1;assets\\**\\*.mp2;assets\\**\\*.mp3;assets\\**\\*.ogg;assets\\**\\*.cue;assets\\**\\*.aif;assets\\**\\*.aiff</EmbeddableMediaGlobs>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="$(EmbeddableMediaGlobs)" />
-    <Content Remove="$(EmbeddableMediaGlobs)" />
-    <EmbeddedResource Include="$(EmbeddableMediaGlobs)" />
-  </ItemGroup>
-
-  <PropertyGroup>
   <RequiredFilesToCopy>
   TwitchIntegration.dll;
   </RequiredFilesToCopy>
-
-
-  <RequiredFoldersToCopy>  
-  </RequiredFoldersToCopy>
   </PropertyGroup>
 
   <Target Name="CopyOutputDllsToPluginsFolder" AfterTargets="AfterBuild" Condition="'$(RequiredFilesToCopy)'!=''">
@@ -83,15 +66,7 @@
   <CombinePath BasePath="$(OutDir)" Paths="$(RequiredFilesToCopy)">
     <Output TaskParameter="CombinedPaths" ItemName="RequiredFilesToCopy_Combined" />
   </CombinePath>
-  <Copy SourceFiles="@(RequiredFilesToCopy_Combined)" DestinationFolder="$(BepInExDir)/plugins/$(ProjectName)" />
-</Target>
-
-  <Target Name="CopyFoldersToPluginsFolder" AfterTargets="AfterBuild" Condition="'$(RequiredFoldersToCopy)'!=''">
-  <ItemGroup>
-    <RequiredFolders Include="$(RequiredFoldersToCopy.Split(';'))" />
-    <FilesToCopy Include="%(RequiredFolders.Identity)/**/*" />
-  </ItemGroup>
-  <Copy SourceFiles="@(FilesToCopy)" DestinationFiles="@(FilesToCopy->'$(BepInExDir)/plugins/$(ProjectName)/%(Identity)')" />
+  <Copy SourceFiles="@(RequiredFilesToCopy_Combined)" DestinationFolder="$(BepInExDir)/plugins/TwitchIntegration" />
 </Target>
 
   <Target Name="ValidateTemplatePaths" BeforeTargets="ResolveReferences">

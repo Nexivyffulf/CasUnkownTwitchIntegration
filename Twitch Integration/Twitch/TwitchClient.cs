@@ -10,10 +10,8 @@ using TwitchLib.EventSub.Websockets.Core.EventArgs;
 using TwitchLib.EventSub.Core.EventArgs.Channel;
 using TwitchLib.Api.Helix.Models.ChannelPoints.CreateCustomReward;
 using TwitchLib.Api.Helix.Models.ChannelPoints.UpdateCustomReward;
-using UnityEngine.UIElements;
-using System.Runtime.InteropServices;
-using System.Linq;
 using UnityEngine;
+using System.Linq;
 
 namespace TwitchIntegration.Twitch;
 
@@ -29,19 +27,17 @@ public class TwitchClient : IDisposable
 	{
 		public readonly string Username = userName;
 		public readonly string Title = title;
-		public bool fulfilled = false;
 	}
 	public ConcurrentQueue<Redemption> RedemptionQueue = [];
 	public static Dictionary<string, string> Redemptions;
 	private Dictionary<string, string> RedeemTitleIds;
+	private string LyingTitle = "Spawn Thornback Elder";  //For the fake elder spawn
 
 	public TwitchClient(TwitchAPI api, EventSubWebsocketClient eventSub, string channelId)  //here
 	{
 		Api = api;
 		ChannelId = channelId;
 		this.eventSub = eventSub;
-
-		CreateRedeems();
 
 		this.eventSub.ErrorOccurred += async (_, args) => Plugin.Logger.LogError(args.Message + "\n" + args.Exception);
 		this.eventSub.WebsocketConnected += OnConnected;
@@ -55,13 +51,14 @@ public class TwitchClient : IDisposable
 	private async Task OnConnected(object sender, WebsocketConnectedArgs e)
 	{
 		Connected = true;
+		CreateRedeems();
+
 		await Api.Helix.EventSub.CreateEventSubSubscriptionAsync(
 			"channel.channel_points_custom_reward_redemption.add", "1",
 			new() { { "broadcaster_user_id", ChannelId } },
 			EventSubTransportMethod.Websocket,
 			eventSub.SessionId);
 	}
-
 	private async Task OnDisconnected(object sender, EventArgs e)
 	{
 		int delay = 1000;
@@ -71,57 +68,81 @@ public class TwitchClient : IDisposable
 			delay = Math.Min(delay * 2, 30000);
 		}
 	}
-
 	private async Task OnRedemption(object sender, ChannelPointsCustomRewardRedemptionArgs e)
 	{
-		if (Redemptions.ContainsKey(e.Payload.Event.Reward.Title))
+		if (Redemptions.ContainsKey(e.Payload.Event.Reward.Title.ToLower()))
 		{
 			Plugin.Logger.LogInfo("NEW REDEMPION DING DING DING!!");
 			RedemptionQueue.Enqueue(new Redemption(e.Payload.Event.UserName, e.Payload.Event.Reward.Title));
 		}
 	}
-
 	public void Update()
 	{
-		if (!PlayerCamera.main && !PauseHandler.paused) //Only when you are playing
+		if (!PauseHandler.paused) //Only when you are playing
 			if (RedemptionQueue.TryDequeue(out Redemption redemption)) //Seperate so it doesn't remove
 			{
-				string[] redeem = Redemptions[redemption.Title.ToLower()].Split(' ');
-				switch (Plugin.integrations.Redeems.IndexOf(redeem[0]))
+				Plugin.Logger.LogInfo("Trying redemption...");
+				if (!PlayerCamera.main)
 				{
-					case 0:
-						redemption.fulfilled = Plugin.integrations.BrainDamage();
-						break;
-					case 1:
-						redemption.fulfilled = Plugin.integrations.DrainBatteries();
-						break;
-					case 2:
-						if (redeem[1] == "random")
-							redemption.fulfilled = Plugin.integrations.GiveRandomItem(redeem.Length < 3 ? "uwu" : redeem[2]);
+					Plugin.Logger.LogInfo("Skipping Redemption.");
+					return;
+				}
+				try
+				{
+					bool fulfilled = false;
+					string[] redeem = redemption.Title[0] == ':' ? redemption.Title.Substring(1).ToLower().Split(' ') : Redemptions[redemption.Title.ToLower()].Split(' ');
+					switch (Plugin.integrations.Redeems.IndexOf(redeem[0]))
+					{
+						case 0:
+							fulfilled = Plugin.integrations.BrainDamage();
+							break;
+						case 1:
+							fulfilled = Plugin.integrations.Command(string.Join(" ", redeem.Skip(1)));
+							break;
+						case 2:
+							fulfilled = Plugin.integrations.DrainBatteries();
+							break;
+						case 3:
+							if (redeem[1] == "random")
+								fulfilled = Plugin.integrations.GiveRandomItem(redeem.Length < 3 ? "uwu" : redeem[2]);
+							else
+								fulfilled = Plugin.integrations.GiveItem(redeem[1]);
+							break;
+						case 4:
+							fulfilled = Plugin.integrations.RandomiseLiquids(string.Concat(redeem.Skip(1)));
+							break;
+						case 5:
+							fulfilled = Plugin.integrations.Spawnelder(redeem.Length >= 2);
+							break;
+						case 6:
+							fulfilled = Plugin.integrations.Teleport();
+							break;
+						case 7:
+							fulfilled = Plugin.integrations.Trip();
+							break;
+					}
+					if (fulfilled == true)
+					{
+						Plugin.Logger.LogInfo($"Redeem \"{redemption.Title}\" from {redemption.Username} fullfilled!");
+						if (redeem[0] == "spawnelder" && redeem[1] == "fake")
+							TILogToConsole($"{redemption.Username} has redeemed {LyingTitle}!");
 						else
-							redemption.fulfilled = Plugin.integrations.GiveItem(redeem[1]);
-						break;
-					case 3:
-						redemption.fulfilled = Plugin.integrations.Teleport();
-						break;
-					case 4:
-						redemption.fulfilled = Plugin.integrations.Trip();
-						break;
+							TILogToConsole($"{redemption.Username} has redeemed {redemption.Title}!");
+					}
+					else
+						Plugin.Logger.LogError($"Incorrect prompt \"{redemption.Title}\".");
 				}
-				if (redemption.fulfilled == true)
+				catch (Exception e)
 				{
-					Plugin.Logger.LogInfo($"Redeem \"{redemption.Title}\" from {redemption.Username} fullfilled!");
-					TILogToConsole($"{redemption.Username} has redeemed {redemption.Title}!");
+					Plugin.Logger.LogError("Exception: " + e.Message);
 				}
-				else
-					Plugin.Logger.LogError($"Incorrect prompt \"{redemption.Title}\".");
 			}
 	}
-
 	public async void CreateRedeems()
 	{
 		try
 		{
+			Plugin.Logger.LogInfo("Adding Redeems to channel...");
 			StreamReader sr = new(Plugin.Redeemspath.Value);
 
 			string line = sr.ReadLine();    //This will just be the cool title
@@ -140,6 +161,8 @@ public class TwitchClient : IDisposable
 				tpcdr = line.Split(':');
 				if (Plugin.AutomaticRedeemHandling.Value && Connected)
 				{
+					if (tpcdr[4] == "spawnelder")
+						LyingTitle = tpcdr[0];  //Save name of real spawnelder
 					if (RedeemTitleIds.ContainsKey(tpcdr[0]))   //If they already exist, just enable
 					{
 						requestupdate = new() { IsEnabled = true };
@@ -159,22 +182,22 @@ public class TwitchClient : IDisposable
 						await Api.Helix.ChannelPoints.CreateCustomRewardsAsync(ChannelId, requestnew);
 					}
 				}
-
-				Redemptions.Add(tpcdr[0], tpcdr[3]);
+				Redemptions.Add(tpcdr[0].ToLower(), tpcdr[4]);
 				line = sr.ReadLine();
 			}
 			sr.Close();
+			Plugin.Logger.LogInfo("Redeems added!");
 		}
 		catch (Exception e)
 		{
 			Plugin.Logger.LogError("Exception: " + e.Message);
 		}
 	}
-
 	public async void KILLRedeems()
 	{
 		if (Connected && Plugin.AutomaticRedeemHandling.Value)
 		{
+			Plugin.Logger.LogInfo("Murdering redeems...");
 			if (Plugin.HideRedeemsOnQuit.Value)
 			{
 				foreach (var redeem in RedeemTitleIds)  //Hide redeems
@@ -185,7 +208,7 @@ public class TwitchClient : IDisposable
 				foreach (var redeem in RedeemTitleIds)  //KILL REDEEMS
 					if (Redemptions.ContainsKey(redeem.Key))
 						await Api.Helix.ChannelPoints.DeleteCustomRewardAsync(ChannelId, redeem.Value);
-			Plugin.Logger.LogInfo("Redeems Murdered!!");
+			Plugin.Logger.LogInfo("Redeems murdered!!");
 		}
 	}
 

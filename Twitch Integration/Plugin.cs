@@ -6,6 +6,8 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using TwitchIntegration.Twitch;
+using System.Linq;
+using UnityEngine;
 
 namespace TwitchIntegration;
 
@@ -15,7 +17,7 @@ public class Plugin : BaseUnityPlugin
 {
 	public const string GUID = "Nexivyffulf.TwitchIntegration";
 	public const string MODNAME = "TwitchIntegration";
-	public const string VERSION = "0.2.0";
+	public const string VERSION = "0.2.1";
 	internal static new ManualLogSource Logger;
 	private readonly Harmony _harmony = new(GUID);
 	public static ConfigEntry<bool> AutomaticRedeemHandling;
@@ -87,11 +89,14 @@ public class Plugin : BaseUnityPlugin
 			if (found != 2)
 				Logger.LogError("Missing Companion files!");
 		}
+
+		Application.wantsToQuit += OnWantsToQuit;
+
 		_harmony.PatchAll();
 		Logger.LogInfo($"Plugin {MODNAME} is loaded!");
 
 	}
-	public void Connect()
+    public void Connect()
 	{
 		if (Client != null)
 		{
@@ -122,10 +127,24 @@ public class Plugin : BaseUnityPlugin
 			};
 		}
 	}
-	public void OnApplicationQuit()
+	public string TestingHook(string test)
 	{
-		if(AutomaticRedeemHandling.Value && Client.Connected)
-		Client.KILLRedeems();	//RAAAHHH
+		if(!Client.Connected)
+			return "You must at least be connected.";
+		Client.RedemptionQueue.Enqueue(new TwitchClient.Redemption("You", ':' + test));
+		return $"Testing Redeem: test";
+	}
+	private bool OnWantsToQuit()
+    {
+        Logger.LogInfo("Cleaning up.");
+		Disconnect();
+		return true;
+    }
+	public void Disconnect()
+	{
+		if (AutomaticRedeemHandling.Value && Client.Connected)
+			Client.KILLRedeems();   //RAAAHHH
+		Client = null;
 	}
 	public void Update()    //Go my updates
 	{
@@ -148,13 +167,15 @@ class Settings_DefaultSettings_Patcher
 			{
 				if (!Plugin.leftconnected)  //Sets to false on game opening so it won't trigger
 				{
-					(Settings.settings.Find(s => s.name == "connect_to_twitch") as SettingBool).SetValue(false);    //Unpacked private function
+					(Settings.settings.Find(s => s.name == "connect_to_twitch") as SettingBool).SetValue(false);    //Unpacked private function grrr
 					Plugin.leftconnected = true;
 
 					return;
 				}
 				if ((Settings.settings.Find(s => s.name == "connect_to_twitch") as SettingBool).value)
 					Plugin.Instance.Connect();   //Start connection process
+				else
+					Plugin.Instance.Disconnect();   //Wow amazing behavior
 
 			},
 			category = Setting.SettingCategory.Game
@@ -191,5 +212,32 @@ class Locale_LoadLanguage_Patcher
 		if (!Locale.currentLang.other.ContainsKey("gamesetstay_logged_indsc"))
 			Locale.currentLang.other.Add("gamesetstay_logged_indsc", "Saves the OAuth key, so connecting to Twitch does not need to open an external page.");
 		Plugin.Logger.LogInfo("Localization added!");
+	}
+}
+
+[HarmonyPatch(typeof(ConsoleScript), nameof(ConsoleScript.RegisterAllCommands))]
+class ConsoleScript_RegisterAllCommands_Patcher
+{
+	static void Postfix()
+	{
+		Plugin.Logger.LogInfo("Adding console commands.");
+
+		ConsoleScript.Commands.Add(new Command("TI_TestRedeem", "Test a redeem via command", delegate (string[] args)
+		{
+			Plugin.Logger.LogInfo(Plugin.Instance.TestingHook(string.Join(" ", args.Skip(1))));
+		}, null, ("redeem syntax", "braindamage, command, drainbatteries, give, randomiseliquids, spawnelder, teleport, trip")));
+
+	}
+}
+
+[HarmonyPatch(typeof(PreRunScript), nameof(PreRunScript.StartRun))]
+[HarmonyPatch(typeof(PreRunScript), nameof(PreRunScript.StartTutorial))]
+class PreRunScript_Startthing_Patcher //Fix these so thay are normal again
+{
+	static void Prefix()
+	{
+		Plugin.Logger.LogInfo("Reverting permanent redeem effects...");
+		Liquids.Registry = Integrations.originalliquids;
+		Plugin.Logger.LogInfo("Reverted!");
 	}
 }

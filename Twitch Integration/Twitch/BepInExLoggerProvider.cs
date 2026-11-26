@@ -15,7 +15,7 @@ namespace TwitchIntegration.Twitch
 
 		private class BepInExLogger(string categoryName) : ILogger
 		{
-			private BepInEx.Logging.ManualLogSource logSource = new(categoryName);
+			private readonly BepInEx.Logging.ManualLogSource logSource = new(categoryName);
 
 			public IDisposable BeginScope<TState>(TState state)
 			{
