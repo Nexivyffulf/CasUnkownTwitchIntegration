@@ -17,6 +17,7 @@ namespace TwitchIntegration.Twitch;
 
 public class TwitchClient : IDisposable
 {
+	public static bool RunningState = Application.runInBackground;
 	public bool Connected = false;
 	public readonly TwitchAPI Api;
 	public readonly string ChannelId;
@@ -91,34 +92,61 @@ public class TwitchClient : IDisposable
 				{
 					bool fulfilled = false;
 					string[] redeem = redemption.Title[0] == ':' ? redemption.Title.Substring(1).ToLower().Split(' ') : Redemptions[redemption.Title.ToLower()].Split(' ');
-					switch (Plugin.integrations.Redeems.IndexOf(redeem[0]))
+					switch (Integrations.integrations.Redeems.IndexOf(redeem[0]))
 					{
 						case 0:
-							fulfilled = Plugin.integrations.BrainDamage();
 							break;
 						case 1:
-							fulfilled = Plugin.integrations.Command(string.Join(" ", redeem.Skip(1)));
+							fulfilled = Integrations.integrations.BrainDamage();
 							break;
 						case 2:
-							fulfilled = Plugin.integrations.DrainBatteries();
+							if (redeem.Length > 1)
+								fulfilled = Integrations.integrations.Command(string.Join(" ", redeem.Skip(1)));
 							break;
 						case 3:
-							if (redeem[1] == "random")
-								fulfilled = Plugin.integrations.GiveRandomItem(redeem.Length < 3 ? "uwu" : redeem[2]);
-							else
-								fulfilled = Plugin.integrations.GiveItem(redeem[1]);
+							fulfilled = Integrations.integrations.DrainBatteries();
 							break;
 						case 4:
-							fulfilled = Plugin.integrations.RandomiseLiquids(string.Concat(redeem.Skip(1)));
+							if (redeem.Length == 3)
+								fulfilled = Integrations.integrations.Feed(Convert.ToInt32(redeem[1]), Convert.ToInt32(redeem[2]));
 							break;
 						case 5:
-							fulfilled = Plugin.integrations.Spawnelder(redeem.Length >= 2);
+							if (redeem.Length == 2)
+								if (redeem[1] == "random")
+									fulfilled = Integrations.integrations.GiveRandomItem(redeem.Length < 3 ? "uwu" : redeem[2]);
+								else
+									fulfilled = Integrations.integrations.GiveItem(redeem[1]);
 							break;
 						case 6:
-							fulfilled = Plugin.integrations.Teleport();
+							fulfilled = Integrations.integrations.Light(redeem[1]);
 							break;
 						case 7:
-							fulfilled = Plugin.integrations.Trip();
+							if (redeem.Length == 4)
+								fulfilled = Integrations.integrations.Opiate(Convert.ToInt32(redeem[1]), Convert.ToInt32(redeem[2]), Convert.ToInt32(redeem[3]));
+							break;
+						case 8:
+							if (redeem.Length == 1)
+								fulfilled = Integrations.integrations.PlayMusic();
+							else
+								fulfilled = Integrations.integrations.PlayMusic(redeem[1]);
+							break;
+						case 9:
+							fulfilled = Integrations.integrations.RandomiseLiquids(string.Concat(redeem.Skip(1)));
+							break;
+						case 10:
+							fulfilled = Integrations.integrations.Spawnelder(redeem.Length >= 2);
+							break;
+						case 11:
+							fulfilled = Integrations.integrations.Swaphands();
+							break;
+						case 12:
+							fulfilled = Integrations.integrations.Teleport();
+							break;
+						case 13:
+							fulfilled = Integrations.integrations.Trip();
+							break;
+						default:
+							fulfilled = Integrations.integrations.CustomRedeem(redeem);   //For other mods if they so wish, you need to be on redeems to get here
 							break;
 					}
 					if (fulfilled == true)
@@ -226,6 +254,7 @@ public class TwitchClient : IDisposable
 		if (disposed)
 			return;
 		disposed = true;
+		Application.runInBackground = RunningState;
 		eventSub?.DisconnectAsync().ContinueWith(delegate (Task<bool> task)
 		{
 			if (!task.Result)

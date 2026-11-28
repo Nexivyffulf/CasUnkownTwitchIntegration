@@ -147,7 +147,7 @@ internal class OAuthLogin : IDisposable
 
 	private async Task<string> GetOAuthToken(TwitchAPI api, CancellationToken ctoken)
 	{
-		bool RunningState = Application.runInBackground;
+		TwitchClient.RunningState = Application.runInBackground;
 		Application.runInBackground = true;
 		string url = api.Auth.GetAuthorizationCodeUrl("http://localhost:2296/", api.Settings.Scopes).Replace("response_type=code", "response_type=token");
 
@@ -228,7 +228,6 @@ internal class OAuthLogin : IDisposable
 		}
 		finally
 		{
-			Application.runInBackground = RunningState;
 			server.Close();
 		}
 	}

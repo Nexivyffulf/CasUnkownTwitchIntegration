@@ -18,59 +18,149 @@ It is recommended to look below and set up your own redeems before using this mo
 
 
 
+###### Commands:
+
+
+
+*TI\_TestRedeem \<redeem syntax>*
+
+&#x20;   Allows you to see what a redeem will do without the need of an actual channel point reward, you still need to
+
+&#x20;   at least be connected to Twitch. You don't have to be a Twitch affiliate.
+
+
+
 ##### **Adding redemptions:**
 
 Look at "Redeems.txt" in there you will see redeems laid out with keywords at the end. They will work but you really should make your own. They follow the pattern (Title):(prompt):(cost):(delay):(redeem syntax). Prompt is the name for the description. The title and prompt can be anything you want as long as they don't contain ':'(and don't break Twitch's rules). Add it to the list here and on connect a matching one will appear on your channel, when you connect to Twitch. They will be removed when you either press the connect button again or close the game. You can configure them to disable instead if you want to add pictures and colours to them. Disabled redeems are hidden from your audience. Note you can only have 50 channel point rewards on your channel.
 
 
 
-* **give *\<item>***
+**braindamage**
 
-  * gives the player the item
-* **give random *\<category>***
+    causes a random brain damage effect to play
 
-  * gives a random item, you can add a category to make it be from a specific pool:
 
-    * medical: medical items not including drugs
-    * food: processed food specifically
-    * water: drinkable containers, like Iced Tea
-    * tool: cutting, hammering, digging, excludes all titanium
-    * drug: drugs
-    * container: item containter, bags
-    * utility: misc items, lockpicking kit, lightbulb
-    * custom: items excluded from above, ranges from foliage and geofruit to the titanium items
-* **braindamage**
 
-  * causes a random brain damage effect to play
-* **drainbatteries**
+**command \<command>**
 
-  * drains all your batteries by 33%
-* **teleport**
+    runs the specified command, it can still disable achievements
 
-  * teleports you, it is not my fault if this disintegrates you
-* **trip**
 
-  * forces you into a ragdoll
-* **spawnelder *\<fake>***
 
-  * spawns a thornbackelder 100 units away from you in a random direction, just in range to horrify but can't see you yet, add fake to just horrify, it will also steal the title of the real redeem if you have it
-* **randomise liquids *\[values...]***
+**drainbatteries**
 
-  * randomises all liquids in the game, include all that you want to happen in values, will reset when you start a run
+    drains all your batteries by 33%
 
-    * dangerous: include dangerous liquids
-    * localename: displayed name and description
-    * valueperliter: fair market value
-    * ondrink: what it does on drink
-    * onHealthUse: what it does when used on your body
-    * healthUsable: if it can be used on your body
-    * injectable: if you are supposed to inject it for the effect
-    * injectionsickness: sickness for injecting
-    * qualities: crafting qualities
 
-* **command *\<command>***
 
-  * runs the specified command, it can still disable achievements
+**feed \<hunger> \<thirst>**
+
+    gives the respective values, can be negative
+
+
+
+**give \<item>**
+
+    gives the player the item
+
+
+
+**give random \<category>**
+
+&#x20;   gives a random item, you can add a category to make it be from a specific pool:
+
+        medical: medical items not including drugs
+
+        food: processed food specifically
+
+        water: drinkable containers, like Iced Tea
+
+        tool: cutting, hammering, digging, excludes all titanium
+
+        drug: drugs
+
+        container: item container, bags
+
+        utility: misc items, lock picking kit, light bulb
+
+        custom: items excluded from above, ranges from foliage and Geo-fruit to the titanium items
+
+
+
+**light \<level>**
+
+&#x20;   this is the ambient light setting as a reminder of it's values: none, enough, bright, or random, which swaps it off your current one
+
+
+
+**opiate \<opiate> \<tolerance> \<antagonist>**
+
+&#x20;   adds to your opiate reception, you can use all 3 to tailor how you want it to act
+
+        opiate: how much opiates are in your system, this being negative is not the same as antagonist
+
+        tolerance: how much tolerance you have, set equal to opiate to make it a slow reveal
+
+        antagonist: opiate antagonist, it is approximately 8 to 1 effectiveness
+
+
+
+**playmusic \<song>**
+
+&#x20;   plays the song, include the full name including file extension, or set to random for a random song
+
+
+
+**randomise liquids \[values...]**
+
+&#x20;   randomises all liquids in the game, include all that you want to happen in values, will reset when you start a run
+
+        dangerous: include dangerous liquids
+
+        localename: displayed name and description
+
+        valueperliter: fair market value
+
+        ondrink: what it does on drink
+
+        onHealthUse: what it does when used on your body
+
+        healthUsable: if it can be used on your body
+
+        injectable: if you are supposed to inject it for the effect
+
+        injectionsickness: sickness for injecting
+
+        qualities: crafting qualities
+
+
+
+**spawnelder \<fake>**
+
+&#x20;   spawns a thornbackelder 100 units away from you in a random direction, just in range to horrify but can't see you
+
+&#x20;   yet, add fake to just horrify, it will also steal the title of the real redeem if you have it
+
+
+
+**swaphands**
+
+&#x20;   swap your current main hand, you won't get the message
+
+
+
+**teleport**
+
+&#x20;   teleports you, same as the crystal, it is not my fault if this disintegrates you
+
+
+
+**trip**
+
+&#x20;   forces you into a ragdoll
+
+
 
 
 

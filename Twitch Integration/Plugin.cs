@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 using BepInEx;
 using BepInEx.Logging;
@@ -8,16 +9,16 @@ using HarmonyLib;
 using TwitchIntegration.Twitch;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace TwitchIntegration;
 
 [BepInPlugin(GUID, MODNAME, VERSION)]
-
 public class Plugin : BaseUnityPlugin
 {
 	public const string GUID = "Nexivyffulf.TwitchIntegration";
 	public const string MODNAME = "TwitchIntegration";
-	public const string VERSION = "0.2.1";
+	public const string VERSION = "0.2.2";
 	internal static new ManualLogSource Logger;
 	private readonly Harmony _harmony = new(GUID);
 	public static ConfigEntry<bool> AutomaticRedeemHandling;
@@ -27,13 +28,10 @@ public class Plugin : BaseUnityPlugin
 	public static ConfigEntry<string> OAuthToken;
 
 	public static Plugin Instance { get; private set; } = null;
-
-
 	public static bool leftconnected = false;   //Certainly a way
 
 	private TwitchClient Client;
 	private OAuthLogin _login;
-	public static Integrations integrations;
 	public void Awake()
 	{
 		Logger = base.Logger;
@@ -89,14 +87,43 @@ public class Plugin : BaseUnityPlugin
 			if (found != 2)
 				Logger.LogError("Missing Companion files!");
 		}
+		StartCoroutine(LoadAllMusic());
 
 		Application.wantsToQuit += OnWantsToQuit;
 
+		try
+		{
 		_harmony.PatchAll();
 		Logger.LogInfo($"Plugin {MODNAME} is loaded!");
-
+		}
+		catch(Exception e)
+		{
+			Logger.LogError(e.Message);
+		}
 	}
-    public void Connect()
+	private IEnumerator LoadAllMusic()
+	{
+		string[] files = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "CasualtiesUnknown_Data", "custommusic"), "*.*");
+		string[] array = files;
+		foreach (string file in array)
+		{
+			if (!file.EndsWith(".mp3") && !file.EndsWith(".wav") && !file.EndsWith(".ogg"))
+			{
+				continue;
+			}
+			string uri = "file://" + file;
+			using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.UNKNOWN);
+			yield return www.SendWebRequest();
+			if (www.result == UnityWebRequest.Result.Success)
+			{
+				AudioClip content = DownloadHandlerAudioClip.GetContent(www);
+				Integrations.integrations.clips.Add(content);
+			}
+			else
+				Logger.LogError("Failed to load: " + file);
+		}
+	}
+	public void Connect()
 	{
 		if (Client != null)
 		{
@@ -116,7 +143,7 @@ public class Plugin : BaseUnityPlugin
 			   if ((Settings.settings.Find(s => s.name == "stay_logged_in") as SettingBool).value)
 				   OAuthToken.Value = client.Api.Settings.AccessToken;
 
-			   integrations = new();
+			   Integrations.integrations = new();
 		   };
 			_login.Failure += () =>
 			{
@@ -129,17 +156,17 @@ public class Plugin : BaseUnityPlugin
 	}
 	public string TestingHook(string test)
 	{
-		if(!Client.Connected)
+		if (!Client.Connected)
 			return "You must at least be connected.";
 		Client.RedemptionQueue.Enqueue(new TwitchClient.Redemption("You", ':' + test));
-		return $"Testing Redeem: test";
+		return $"Testing Redeem: {test}";
 	}
 	private bool OnWantsToQuit()
-    {
-        Logger.LogInfo("Cleaning up.");
+	{
+		Logger.LogInfo("Cleaning up.");
 		Disconnect();
 		return true;
-    }
+	}
 	public void Disconnect()
 	{
 		if (AutomaticRedeemHandling.Value && Client.Connected)

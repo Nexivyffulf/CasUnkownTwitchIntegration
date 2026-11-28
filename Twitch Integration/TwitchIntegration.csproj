@@ -3,7 +3,7 @@
     <TargetFramework>net48</TargetFramework>
     <AssemblyName>TwitchIntegration</AssemblyName>
     <Product>TwitchIntegration</Product>
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -37,8 +37,12 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" IncludeAssets="compile" />
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
 
-    <Reference Include="Assembly-CSharp" Publicize="true" >
+    <Reference Include="Assembly-CSharp">
       <HintPath>$(GameAssembliesDir)/Assembly-CSharp.dll</HintPath>
+    </Reference>
+
+    <Reference Include="Unity.VisualScripting.core">
+      <HintPath>$(GameAssembliesDir)/Unity.VisualScripting.core.dll</HintPath>
     </Reference>
 
     <Reference Include="UnityEngine.UI">
@@ -47,6 +51,11 @@
 
     <Reference Include="Unity.TextMeshPro">
       <HintPath>$(GameAssembliesDir)/Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+
+    <Reference Include="CasualtiesMP">
+      <HintPath>$(CasualtiesMPDllPath)</HintPath>
+      <Private>false</Private>
     </Reference>
 
   </ItemGroup>
